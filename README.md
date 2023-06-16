@@ -1,6 +1,6 @@
 ![PhoneNumberKit](https://cloud.githubusercontent.com/assets/889949/20864386/a1307950-b9ef-11e6-8a58-e9c5103738e7.png)
 [![Platform](https://img.shields.io/cocoapods/p/PhoneNumberKit.svg?maxAge=2592000)](http://cocoapods.org/?q=PhoneNumberKit)
-[![Build Status](https://travis-ci.org/marmelroy/PhoneNumberKit.svg?branch=master)](https://travis-ci.org/marmelroy/PhoneNumberKit) [![Version](http://img.shields.io/cocoapods/v/PhoneNumberKit.svg)](http://cocoapods.org/?q=PhoneNumberKit)
+![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/PhoneNumberKit/PhoneNumberKit/pr.yml?branch=main&label=tests) [![Version](http://img.shields.io/cocoapods/v/PhoneNumberKit.svg)](http://cocoapods.org/?q=PhoneNumberKit)
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
 # PhoneNumberKit
@@ -126,8 +126,8 @@ The [Swift Package Manager](https://swift.org/package-manager/) is now the prefe
 
 From Xcode 11+ :
 
-1. Select File > Swift Packages > Add Package Dependency. Enter `https://github.com/marmelroy/PhoneNumberKit.git` in the "Choose Package Repository" dialog.
-2. In the next page, specify the version resolving rule as "Up to Next Major" from "3.4.0".
+1. Select File > Swift Packages > Add Package Dependency. Enter `https://github.com/PhoneNumberKit/PhoneNumberKit.git` in the "Choose Package Repository" dialog.
+2. In the next page, specify the version resolving rule as "Up to Next Major" from "3.6.0".
 3. After Xcode checked out the source and resolving the version, you can choose the "PhoneNumberKit" library and add it to your app target.
 
 For more info, read [Adding Package Dependencies to Your App](https://developer.apple.com/documentation/xcode/adding_package_dependencies_to_your_app) from Apple.
@@ -136,7 +136,7 @@ Alternatively, you can also add PhoneNumberKit to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/marmelroy/PhoneNumberKit", from: "3.4.0")
+    .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit", from: "3.6.0")
 ]
 ```
 
@@ -154,11 +154,11 @@ $ brew install carthage
 To integrate PhoneNumberKit into your Xcode project using Carthage, specify it in your `Cartfile`:
 
 ```ogdl
-github "marmelroy/PhoneNumberKit"
+github "PhoneNumberKit/PhoneNumberKit"
 ```
 
 ### Setting up with [CocoaPods](http://cocoapods.org/?q=PhoneNumberKit)
 
 ```ruby
-pod 'PhoneNumberKit', :git => 'https://github.com/marmelroy/PhoneNumberKit'
+pod 'PhoneNumberKit', :git => 'https://github.com/PhoneNumberKit/PhoneNumberKit'
 ```
