@@ -6,10 +6,10 @@ Pod::Spec.new do |s|
                         A Swift framework for parsing, formatting and validating international phone numbers. Inspired by Google's libphonenumber.
   DESC
 
-  s.homepage         = 'https://github.com/marmelroy/PhoneNumberKit'
+  s.homepage         = 'https://github.com/PhoneNumberKit/PhoneNumberKit'
   s.license          = 'MIT'
   s.author           = { 'Roy Marmelstein' => 'marmelroy@gmail.com' }
-  s.source           = { git: 'https://github.com/marmelroy/PhoneNumberKit.git', tag: s.version.to_s }
+  s.source           = { git: 'https://github.com/PhoneNumberKit/PhoneNumberKit.git', tag: s.version.to_s }
 
   s.requires_arc = true
   s.ios.deployment_target = '11.0'

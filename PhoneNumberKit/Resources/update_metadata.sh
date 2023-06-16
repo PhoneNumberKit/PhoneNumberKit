@@ -39,7 +39,7 @@ set -o pipefail
 
 # Repos
 libphonenumber_repo="https://github.com/google/libphonenumber"
-phonenumberkit_repo="https://github.com/marmelroy/PhoneNumberKit"
+phonenumberkit_repo="https://github.com/PhoneNumberKit/PhoneNumberKit"
 
 # Release versions
 latest=$(latest_release_number $libphonenumber_repo)
