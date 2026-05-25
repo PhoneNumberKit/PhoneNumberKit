@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
     inputs:
       commit_hash:
@@ -38,72 +38,40 @@ jobs:
           fi
 
           # Check if .metadata-version was modified
-          if git diff $compare_with $compare_to --name-only | grep -q "PhoneNumberKit/Resources/.metadata-version"; then
+          if git diff $compare_with $compare_to --name-only | grep -q "Sources/PhoneNumberKit/Resources/.metadata-version"; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "changed=false" >> $GITHUB_OUTPUT
             echo "No metadata version change detected, skipping release"
           fi
 
-      - name: Extract and bump version
+      - name: Compute next version from latest tag
         if: steps.check_metadata.outputs.changed == 'true'
         id: bump_version
         run: |
-          # Extract current version from podspec
-          current_version=$(grep "s.version" PhoneNumberKit.podspec | sed -n "s/.*'\([0-9]*\.[0-9]*\.[0-9]*\)'.*/\1/p")
-          echo "Current version: $current_version"
-
-          # Validate version was extracted
-          if [ -z "$current_version" ]; then
-            echo "Error: Could not extract version from podspec"
+          # Source of truth for the package version is the latest semver git tag.
+          latest_tag=$(git tag --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$latest_tag" ]; then
+            echo "Error: no semver tag found to bump from (expected an initial tag like 5.0.0)"
             exit 1
           fi
+          echo "Latest tag: $latest_tag"
 
-          # Parse version components
-          major=$(echo $current_version | cut -d. -f1)
-          minor=$(echo $current_version | cut -d. -f2)
-          patch=$(echo $current_version | cut -d. -f3)
+          major=$(echo $latest_tag | cut -d. -f1)
+          minor=$(echo $latest_tag | cut -d. -f2)
+          patch=$(echo $latest_tag | cut -d. -f3)
 
-          # Bump patch version
-          new_patch=$((patch + 1))
-          new_version="${major}.${minor}.${new_patch}"
+          # Metadata updates are patch releases
+          new_version="${major}.${minor}.$((patch + 1))"
           echo "New version: $new_version"
-
-          # Save to output
           echo "version=$new_version" >> $GITHUB_OUTPUT
-
-      - name: Update podspec
-        if: steps.check_metadata.outputs.changed == 'true'
-        run: |
-          new_version="${{ steps.bump_version.outputs.version }}"
-
-          # Update version in podspec
-          sed -i "s/s.version.*=.*/s.version          = '$new_version'/" PhoneNumberKit.podspec
-
-          # Verify the change
-          echo "Updated podspec:"
-          grep "s.version" PhoneNumberKit.podspec
-
-      - name: Commit and push
-        if: steps.check_metadata.outputs.changed == 'true'
-        run: |
-          new_version="${{ steps.bump_version.outputs.version }}"
-
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Commit and push
-          git add PhoneNumberKit.podspec
-          git commit -m "Release $new_version"
-          git push origin master
 
       - name: Create and push tag
         if: steps.check_metadata.outputs.changed == 'true'
         run: |
           new_version="${{ steps.bump_version.outputs.version }}"
-
-          # Create annotated tag
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$new_version" -m "Release $new_version"
           git push origin "$new_version"
 
@@ -113,8 +81,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           new_version="${{ steps.bump_version.outputs.version }}"
-
-          # Create release with auto-generated notes
           gh release create "$new_version" \
             --verify-tag \
             --generate-notes

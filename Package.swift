@@ -1,10 +1,10 @@
-// swift-tools-version: 5.5
+// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
     name: "PhoneNumberKit",
     platforms: [
-        .iOS(.v12), .macOS(.v10_13), .tvOS(.v12), .watchOS(.v4)
+        .iOS(.v13), .macOS(.v10_15), .tvOS(.v13), .watchOS(.v6)
     ],
     products: [
         .library(name: "PhoneNumberKit", targets: ["PhoneNumberKit"]),
@@ -12,19 +12,23 @@ let package = Package(
         .library(name: "PhoneNumberKit-Dynamic", type: .dynamic, targets: ["PhoneNumberKit"])
     ],
     targets: [
-        .target(name: "PhoneNumberKit",
-                path: "PhoneNumberKit",
-                exclude: ["Resources/Original",
-                          "Resources/README.md",
-                          "Resources/update_metadata.sh",
-                          "Info.plist"],
-                resources: [
-                    .process("Resources/PhoneNumberMetadata.json"),
-                    .copy("Resources/PrivacyInfo.xcprivacy")
-                ]),
-        .testTarget(name: "PhoneNumberKitTests",
-                    dependencies: ["PhoneNumberKit"],
-                    path: "PhoneNumberKitTests",
-                    exclude: ["Info.plist"])
+        .target(
+            name: "PhoneNumberKit",
+            path: "Sources/PhoneNumberKit",
+            exclude: [
+                "Resources/Original",
+                "Resources/README.md",
+                "Resources/update_metadata.sh"
+            ],
+            resources: [
+                .process("Resources/PhoneNumberMetadata.json"),
+                .copy("Resources/PrivacyInfo.xcprivacy")
+            ]
+        ),
+        .testTarget(
+            name: "PhoneNumberKitTests",
+            dependencies: ["PhoneNumberKit"],
+            path: "Tests/PhoneNumberKitTests"
+        )
     ]
 )

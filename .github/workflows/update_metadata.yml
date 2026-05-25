@@ -24,4 +24,4 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: Update Metadata
-        run: cd PhoneNumberKit/Resources && sh ./update_metadata.sh
+        run: cd Sources/PhoneNumberKit/Resources && sh ./update_metadata.sh
