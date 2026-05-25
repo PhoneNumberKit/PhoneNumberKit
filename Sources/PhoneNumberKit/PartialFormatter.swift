@@ -72,7 +72,9 @@ public final class PartialFormatter {
     var currentMetadata: MetadataTerritory?
     var prefixBeforeNationalNumber = String()
     var shouldAddSpaceAfterNationalPrefix = false
-    var withPrefix = true
+    /// Whether the international prefix is included when formatting. Configurable like
+    /// `defaultRegion` and `maxDigits`; consumed by PhoneNumberKitUI's text field.
+    public var withPrefix = true
     var ignoreIntlNumbers = false
 
     // MARK: Status
