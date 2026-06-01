@@ -30,6 +30,78 @@ final class PhoneNumberUtilityParsingTests: XCTestCase {
         }
     }
 
+    // MARK: - Parsing with a nil region (international-only)
+
+    func testNilRegionInternationalNumberInfersRegion() throws {
+        let usNumber = try sut.parse("+1 650 253 0000", withRegion: nil)
+        XCTAssertEqual(usNumber.countryCode, 1)
+        XCTAssertEqual(usNumber.regionID, "US")
+        XCTAssertEqual(usNumber.nationalNumber, 6502530000)
+
+        let gbNumber = try sut.parse("+44 20 7031 3000", withRegion: nil)
+        XCTAssertEqual(gbNumber.countryCode, 44)
+        XCTAssertEqual(gbNumber.regionID, "GB")
+
+        let frNumber = try sut.parse("+33 6 12 34 56 78", withRegion: nil)
+        XCTAssertEqual(frNumber.countryCode, 33)
+        XCTAssertEqual(frNumber.regionID, "FR")
+    }
+
+    func testNilRegionMatchesExplicitRegion() throws {
+        let withNil = try sut.parse("+1 650 253 0000", withRegion: nil)
+        let withRegion = try sut.parse("+1 650 253 0000", withRegion: "US")
+        XCTAssertEqual(withNil, withRegion)
+    }
+
+    func testNilRegionNationalNumberThrows() {
+        // Without a region and without a "+" prefix the country code cannot be inferred.
+        XCTAssertThrowsError(try self.sut.parse("650 253 0000", withRegion: nil)) { error in
+            XCTAssertEqual(error as? PhoneNumberError, .invalidCountryCode)
+        }
+    }
+
+    func testNilRegionIsValidPhoneNumber() {
+        XCTAssertTrue(self.sut.isValidPhoneNumber("+1 650 253 0000", withRegion: nil))
+        XCTAssertFalse(self.sut.isValidPhoneNumber("650 253 0000", withRegion: nil))
+    }
+
+    func testNilRegionArrayParsing() {
+        let numbers = self.sut.parse(["+1 650 253 0000", "+44 20 7031 3000", "650 253 0000"], withRegion: nil)
+        // The two international numbers parse; the national-only number is dropped.
+        XCTAssertEqual(numbers.count, 2)
+        XCTAssertEqual(Set(numbers.map(\.regionID)), ["US", "GB"])
+    }
+
+    /// Parse the same US number expressed in every input form, across nil / non-nil region.
+    /// All forms that carry enough information to identify the country must yield an identical
+    /// `PhoneNumber`; forms that don't (national-only with a nil region) must throw.
+    func testSameNumberAcrossRegionAndCountryCodeForms() throws {
+        // Reference: national number anchored by an explicit region.
+        let reference = try sut.parse("650 253 0000", withRegion: "US")
+
+        // National number (no country code), with a region -> resolves via the region.
+        XCTAssertEqual(try sut.parse("650 253 0000", withRegion: "US"), reference)
+
+        // Country code without "+", with a region -> region resolves it.
+        XCTAssertEqual(try sut.parse("1 650 253 0000", withRegion: "US"), reference)
+
+        // Country code with "+", with a region -> the "+" wins, region is consistent.
+        XCTAssertEqual(try sut.parse("+1 650 253 0000", withRegion: "US"), reference)
+
+        // Country code with "+", region nil -> country code inferred from the number.
+        XCTAssertEqual(try sut.parse("+1 650 253 0000", withRegion: nil), reference)
+
+        // National number, region nil -> no "+" prefix to infer the country code: throws.
+        XCTAssertThrowsError(try self.sut.parse("650 253 0000", withRegion: nil)) { error in
+            XCTAssertEqual(error as? PhoneNumberError, .invalidCountryCode)
+        }
+
+        // Country code without "+", region nil -> still not international format: throws.
+        XCTAssertThrowsError(try self.sut.parse("1 650 253 0000", withRegion: nil)) { error in
+            XCTAssertEqual(error as? PhoneNumberError, .invalidCountryCode)
+        }
+    }
+
     func testUSNumberNoPrefix() throws {
         let phoneNumber1 = try sut.parse("650 253 0000", withRegion: "US")
         let phoneNumberInternationalFormat1 = self.sut.format(phoneNumber1, toType: .international, withPrefix: false)

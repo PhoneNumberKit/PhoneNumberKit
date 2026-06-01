@@ -22,83 +22,105 @@ final class ParseManager {
 
     /// Parse a string into a phone number object with a custom region. Can throw.
     /// - Parameter numberString: String to be parsed to phone number struct.
-    /// - Parameter region: ISO 3166 compliant region code.
+    /// - Parameter region: ISO 3166 compliant region code. Pass `nil` to require the number to be
+    ///   in international (`+` prefixed) format and infer the region from its country code; a
+    ///   national-only number then throws `PhoneNumberError.invalidCountryCode`.
     /// - parameter ignoreType:   Avoids number type checking for faster performance.
-    func parse(_ numberString: String, withRegion region: String, ignoreType: Bool) throws -> PhoneNumber {
+    func parse(_ numberString: String, withRegion region: String?, ignoreType: Bool) throws -> PhoneNumber {
         guard let metadataManager = metadataManager, let regexManager = regexManager else { throw PhoneNumberError.generalError }
-        
-        // STEP 1: Normalize region code
-        // Ensure region is uppercase to match metadata keys (e.g., "us" -> "US")
-        let region = region.uppercased()
-        
-        // STEP 2: Extract and normalize the phone number
+
+        // STEP 1: Extract and normalize the phone number
         // Find the actual phone number within the input string using data detector
         var nationalNumber = numberString
         let match = try regexManager.phoneDataDetectorMatch(numberString)
         let matchedNumber = nationalNumber.substring(with: match.range)
-        
+
         // Normalize digits by replacing Arabic and Persian numerals with standard digits
         // while keeping other characters unchanged for further processing
         nationalNumber = regexManager.stringByReplacingOccurrences(matchedNumber, map: PhoneNumberPatterns.allNormalizationMappings, keepUnmapped: true)
 
-        // STEP 3: Handle phone number extensions
+        // STEP 2: Handle phone number extensions
         // Extract and normalize any extension (e.g., "ext 123", "x123") from the number
         var numberExtension: String?
         if let rawExtension = parser.stripExtension(&nationalNumber) {
             numberExtension = self.parser.normalizePhoneNumber(rawExtension)
         }
-        
-        // STEP 4: Extract country code from the number
-        // Get metadata for the specified region and attempt to extract country code
-        guard var regionMetadata = metadataManager.filterTerritories(byCountry: region) else {
-            throw PhoneNumberError.invalidCountryCode
-        }
-        
-        let countryCode: UInt64
-        do {
-            // Try to extract country code normally
-            countryCode = try self.parser.extractCountryCode(nationalNumber, nationalNumber: &nationalNumber, metadata: regionMetadata)
-        } catch {
-            // Fallback: Remove any leading plus signs and try again
-            // This handles cases where the number has formatting like "+1" but extraction failed
-            let plusRemovedNumberString = regexManager.replaceStringByRegex(PhoneNumberPatterns.leadingPlusCharsPattern, string: nationalNumber as String)
-            countryCode = try self.parser.extractCountryCode(plusRemovedNumberString, nationalNumber: &nationalNumber, metadata: regionMetadata)
-        }
 
-        // STEP 5: Final number normalization and validation
-        // Normalize the remaining national number (remove spaces, dashes, etc.)
-        nationalNumber = self.parser.normalizePhoneNumber(nationalNumber)
-        
-        // Handle special case where no country code was extracted (countryCode == 0)
-        if countryCode == 0 {
-            // Check if the number incorrectly includes the country code as part of the national number
-            if nationalNumber.hasPrefix(String(regionMetadata.countryCode)) {
-                let potentialNationalNumber = String(nationalNumber.dropFirst(String(regionMetadata.countryCode).count))
-                
-                // Validate that removing the country code prefix leaves a valid national number
-                if let generalNumberDesc = regionMetadata.generalDesc,
-                   regexManager.hasValue(generalNumberDesc.nationalNumberPattern),
-                   parser.isNumberMatchingDesc(potentialNationalNumber, numberDesc: generalNumberDesc) {
-                    
-                    // Attempt to create a valid phone number with the corrected national number
-                    let correctedNumberString = potentialNationalNumber
-                    if let result = try validPhoneNumber(from: potentialNationalNumber, using: regionMetadata, countryCode: regionMetadata.countryCode, ignoreType: ignoreType, numberString: correctedNumberString, numberExtension: numberExtension) {
-                        return result
+        // STEP 3: Resolve the region metadata and the number's country code.
+        var regionMetadata: MetadataTerritory
+        let countryCode: UInt64
+
+        if let region = region?.uppercased() {
+            // A region was supplied: seed metadata from it and extract the country code relative to it.
+            // Ensure region is uppercase to match metadata keys (e.g., "us" -> "US")
+            guard let seedMetadata = metadataManager.filterTerritories(byCountry: region) else {
+                throw PhoneNumberError.invalidCountryCode
+            }
+            regionMetadata = seedMetadata
+
+            do {
+                // Try to extract country code normally
+                countryCode = try self.parser.extractCountryCode(nationalNumber, nationalNumber: &nationalNumber, metadata: regionMetadata)
+            } catch {
+                // Fallback: Remove any leading plus signs and try again
+                // This handles cases where the number has formatting like "+1" but extraction failed
+                let plusRemovedNumberString = regexManager.replaceStringByRegex(PhoneNumberPatterns.leadingPlusCharsPattern, string: nationalNumber as String)
+                countryCode = try self.parser.extractCountryCode(plusRemovedNumberString, nationalNumber: &nationalNumber, metadata: regionMetadata)
+            }
+
+            // Normalize the remaining national number (remove spaces, dashes, etc.)
+            nationalNumber = self.parser.normalizePhoneNumber(nationalNumber)
+
+            // Handle special case where no country code was extracted (countryCode == 0)
+            if countryCode == 0 {
+                // Check if the number incorrectly includes the country code as part of the national number
+                if nationalNumber.hasPrefix(String(regionMetadata.countryCode)) {
+                    let potentialNationalNumber = String(nationalNumber.dropFirst(String(regionMetadata.countryCode).count))
+
+                    // Validate that removing the country code prefix leaves a valid national number
+                    if let generalNumberDesc = regionMetadata.generalDesc,
+                       regexManager.hasValue(generalNumberDesc.nationalNumberPattern),
+                       parser.isNumberMatchingDesc(potentialNationalNumber, numberDesc: generalNumberDesc) {
+
+                        // Attempt to create a valid phone number with the corrected national number
+                        let correctedNumberString = potentialNationalNumber
+                        if let result = try validPhoneNumber(from: potentialNationalNumber, using: regionMetadata, countryCode: regionMetadata.countryCode, ignoreType: ignoreType, numberString: correctedNumberString, numberExtension: numberExtension) {
+                            return result
+                        }
                     }
                 }
+
+                // Last attempt: try to parse the number as-is with the region's default country code
+                if let result = try validPhoneNumber(from: nationalNumber, using: regionMetadata, countryCode: regionMetadata.countryCode, ignoreType: ignoreType, numberString: numberString, numberExtension: numberExtension) {
+                    return result
+                }
+
+                // Final fallback for countryCode == 0: try all territories with the same country code as the region
+                // This handles cases where a number from one NANP territory (e.g., US) is parsed with another NANP region (e.g., AS, PR)
+                return try tryTerritoriesWithCode(regionMetadata.countryCode, nationalNumber: nationalNumber, excludingRegion: regionMetadata.codeID, ignoreType: ignoreType, numberString: numberString, numberExtension: numberExtension)
+            }
+        } else {
+            // No region was supplied: the number must be in international (`+` prefixed) format so the
+            // country code — and therefore the region — can be inferred directly from the number itself.
+            guard regexManager.matchesAtStart(PhoneNumberPatterns.leadingPlusCharsPattern, string: nationalNumber as String) else {
+                throw PhoneNumberError.invalidCountryCode
             }
 
-            // Last attempt: try to parse the number as-is with the region's default country code
-            if let result = try validPhoneNumber(from: nationalNumber, using: regionMetadata, countryCode: regionMetadata.countryCode, ignoreType: ignoreType, numberString: numberString, numberExtension: numberExtension) {
-                return result
-            }
+            // Normalize to bare digits (drops the leading "+", spaces, dashes) so the country code sits at the start.
+            nationalNumber = self.parser.normalizePhoneNumber(nationalNumber)
 
-            // Final fallback for countryCode == 0: try all territories with the same country code as the region
-            // This handles cases where a number from one NANP territory (e.g., US) is parsed with another NANP region (e.g., AS, PR)
-            return try tryTerritoriesWithCode(regionMetadata.countryCode, nationalNumber: nationalNumber, excludingRegion: regionMetadata.codeID, ignoreType: ignoreType, numberString: numberString, numberExtension: numberExtension)
+            var numberWithoutCountryCode = nationalNumber
+            guard let extractedCountryCode = self.parser.extractPotentialCountryCode(nationalNumber, nationalNumber: &numberWithoutCountryCode),
+                  extractedCountryCode != 0,
+                  let inferredMetadata = metadataManager.mainTerritory(forCode: extractedCountryCode) else {
+                throw PhoneNumberError.invalidCountryCode
+            }
+            nationalNumber = numberWithoutCountryCode
+            regionMetadata = inferredMetadata
+            countryCode = extractedCountryCode
         }
 
-        // STEP 6: Update metadata if extracted country code differs from region's default
+        // STEP 4: Update metadata if extracted country code differs from region's default
         // This handles cases where the number contains a country code different from the region parameter
         // For example: parsing a US number (+1) while specifying region as "CA" (Canada, also +1)
         if countryCode != regionMetadata.countryCode, let countryMetadata = metadataManager.mainTerritory(forCode: countryCode) {
@@ -120,10 +142,10 @@ final class ParseManager {
 
     /// Fastest way to parse an array of phone numbers. Uses custom region code.
     /// - Parameter numberStrings: An array of raw number strings.
-    /// - Parameter region: ISO 3166 compliant region code.
+    /// - Parameter region: ISO 3166 compliant region code, or `nil` to require international (`+` prefixed) format.
     /// - parameter ignoreType: Avoids number type checking for faster performance.
     /// - Returns: An array of valid PhoneNumber objects.
-    func parseMultiple(_ numberStrings: [String], withRegion region: String, ignoreType: Bool, shouldReturnFailedEmptyNumbers: Bool = false) -> [PhoneNumber] {
+    func parseMultiple(_ numberStrings: [String], withRegion region: String?, ignoreType: Bool, shouldReturnFailedEmptyNumbers: Bool = false) -> [PhoneNumber] {
         var hasError = false
 
         let results = numberStrings.enumerated().map { index, numberString -> PhoneNumber in
