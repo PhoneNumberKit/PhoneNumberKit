@@ -37,21 +37,23 @@ public final class PhoneNumberUtility {
     ///
     /// - Parameters:
     ///   - numberString: the raw number string.
-    ///   - region: ISO 3166 compliant region code.
+    ///   - region: ISO 3166 compliant region code. Pass `nil` to require the number to be in
+    ///     international (`+` prefixed) format and infer the region from its country code; a
+    ///     national-only number then throws `PhoneNumberError.invalidCountryCode`.
     ///   - ignoreType: Avoids number type checking for faster performance.
     /// - Returns: PhoneNumber object.
-    public func parse(_ numberString: String, withRegion region: String = defaultRegionCode(), ignoreType: Bool = false) throws -> PhoneNumber {
+    public func parse(_ numberString: String, withRegion region: String? = defaultRegionCode(), ignoreType: Bool = false) throws -> PhoneNumber {
         try self.parseManager.parse(numberString, withRegion: region, ignoreType: ignoreType)
     }
 
     /// Parses an array of number strings. Optimised for performance. Invalid numbers are ignored in the resulting array
     ///
     /// - parameter numberStrings:               array of raw number strings.
-    /// - parameter region:                      ISO 3166 compliant region code.
+    /// - parameter region:                      ISO 3166 compliant region code, or `nil` to require international (`+` prefixed) format.
     /// - parameter ignoreType:   Avoids number type checking for faster performance.
     ///
     /// - returns: array of PhoneNumber objects.
-    public func parse(_ numberStrings: [String], withRegion region: String = defaultRegionCode(), ignoreType: Bool = false, shouldReturnFailedEmptyNumbers: Bool = false) -> [PhoneNumber] {
+    public func parse(_ numberStrings: [String], withRegion region: String? = defaultRegionCode(), ignoreType: Bool = false, shouldReturnFailedEmptyNumbers: Bool = false) -> [PhoneNumber] {
         return self.parseManager.parseMultiple(numberStrings, withRegion: region, ignoreType: ignoreType, shouldReturnFailedEmptyNumbers: shouldReturnFailedEmptyNumbers)
     }
 
@@ -61,10 +63,10 @@ public final class PhoneNumberUtility {
     ///
     /// - Parameters:
     ///   - numberString: the raw number string.
-    ///   - region: ISO 3166 compliant region code.
+    ///   - region: ISO 3166 compliant region code, or `nil` to require international (`+` prefixed) format.
     ///   - ignoreType: Avoids number type checking for faster performance.
     /// - Returns: Bool
-    public func isValidPhoneNumber(_ numberString: String, withRegion region: String = defaultRegionCode(), ignoreType: Bool = false) -> Bool {
+    public func isValidPhoneNumber(_ numberString: String, withRegion region: String? = defaultRegionCode(), ignoreType: Bool = false) -> Bool {
         return (try? self.parse(numberString, withRegion: region, ignoreType: ignoreType)) != nil
     }
 
