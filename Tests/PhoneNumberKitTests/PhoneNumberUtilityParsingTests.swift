@@ -451,4 +451,54 @@ final class PhoneNumberUtilityParsingTests: XCTestCase {
         XCTAssertNoThrow(try sut.parse(number, withRegion: "CA"))
         XCTAssertNoThrow(try sut.parse(number, withRegion: "US"))
     }
+
+    // MARK: - NSN whose leading digits coincide with the region's calling code
+
+    func testNSNWithLeadingCountryCodeDigitsNotStripped_VN() throws {
+        let phoneNumber = try sut.parse("848043333", withRegion: "VN")
+        XCTAssertEqual(sut.format(phoneNumber, toType: .e164), "+84848043333")
+        XCTAssertTrue(sut.isValidPhoneNumber("848043333", withRegion: "VN"))
+
+        // The CC-stripping path must still fire when the input is unambiguously
+        // international (+ prefix). Both forms should resolve to the same NSN.
+        let international = try sut.parse("+84848043333", withRegion: "VN")
+        XCTAssertEqual(international.nationalNumber, phoneNumber.nationalNumber)
+
+        // The bug originally reproduced with ignoreType: true; pin that path too.
+        let ignoringType = try sut.parse("848043333", withRegion: "VN", ignoreType: true)
+        XCTAssertEqual(sut.format(ignoringType, toType: .e164), "+84848043333")
+    }
+
+    func testNSNWithLeadingCountryCodeDigitsNotStripped_IN() throws {
+        let phoneNumber = try sut.parse("9115192229", withRegion: "IN")
+        XCTAssertEqual(sut.format(phoneNumber, toType: .e164), "+919115192229")
+        XCTAssertTrue(sut.isValidPhoneNumber("9115192229", withRegion: "IN"))
+
+        let international = try sut.parse("+919115192229", withRegion: "IN")
+        XCTAssertEqual(international.nationalNumber, phoneNumber.nationalNumber)
+    }
+
+    func testNSNWithLeadingCountryCodeDigitsNotStripped_SE() throws {
+        let phoneNumber = try sut.parse("462220000", withRegion: "SE")
+        XCTAssertEqual(sut.format(phoneNumber, toType: .e164), "+46462220000")
+        XCTAssertTrue(sut.isValidPhoneNumber("462220000", withRegion: "SE"))
+
+        let international = try sut.parse("+46462220000", withRegion: "SE")
+        XCTAssertEqual(international.nationalNumber, phoneNumber.nationalNumber)
+    }
+
+    func testNSNWithLeadingCountryCodeDigits_AdditionalRegions() throws {
+        let testCases: [(region: String, nsn: String, e164: String)] = [
+            ("CH", "415678901", "+41415678901"),
+            ("IT", "3911234567", "+393911234567"),
+            ("TH", "661234567", "+66661234567"),
+            ("KZ", "77001234567", "+77001234567")
+        ]
+        for testCase in testCases {
+            let row = "region=\(testCase.region) nsn=\(testCase.nsn)"
+            let phoneNumber = try sut.parse(testCase.nsn, withRegion: testCase.region)
+            XCTAssertEqual(sut.format(phoneNumber, toType: .e164), testCase.e164, row)
+            XCTAssertTrue(sut.isValidPhoneNumber(testCase.nsn, withRegion: testCase.region), row)
+        }
+    }
 }
