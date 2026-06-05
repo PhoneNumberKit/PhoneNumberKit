@@ -469,7 +469,7 @@ final class PhoneNumberUtilityTests: XCTestCase {
     }
 
     func testValidDENumbers() throws {
-        let numbers = ["491713369876", "+491713369876", "01713369876", "1713369876"]
+        let numbers = ["+491713369876", "01713369876", "1713369876"]
         try numbers.forEach {
             let phoneNumber = try sut.parse($0, withRegion: "DE")
             XCTAssertNotNil(phoneNumber)
@@ -477,6 +477,11 @@ final class PhoneNumberUtilityTests: XCTestCase {
             let formatted = sut.format(phoneNumber, toType: .e164)
             XCTAssertEqual(formatted, "+491713369876")
         }
+
+        // "491713369876" is itself a valid 12-digit German NSN — "491" is an area
+        // code (Leer, Lower Saxony), not the country code — so it must not be stripped.
+        let asNationalNumber = try sut.parse("491713369876", withRegion: "DE")
+        XCTAssertEqual(sut.format(asNationalNumber, toType: .e164), "+49491713369876")
     }
 
     func testValidITNumbers() throws {

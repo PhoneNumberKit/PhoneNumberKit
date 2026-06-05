@@ -75,10 +75,13 @@ final class ParseManager {
             if nationalNumber.hasPrefix(String(regionMetadata.countryCode)) {
                 let potentialNationalNumber = String(nationalNumber.dropFirst(String(regionMetadata.countryCode).count))
                 
-                // Validate that removing the country code prefix leaves a valid national number
+                // Only strip the leading country code when removing it produces a valid NSN AND the
+                // as-supplied NSN does not already match — otherwise we'd incorrectly drop legitimate
+                // leading digits that happen to coincide with the region's calling code.
                 if let generalNumberDesc = regionMetadata.generalDesc,
                    regexManager.hasValue(generalNumberDesc.nationalNumberPattern),
-                   parser.isNumberMatchingDesc(potentialNationalNumber, numberDesc: generalNumberDesc) {
+                   parser.isNumberMatchingDesc(potentialNationalNumber, numberDesc: generalNumberDesc),
+                   !parser.isNumberMatchingDesc(nationalNumber, numberDesc: generalNumberDesc) {
                     
                     // Attempt to create a valid phone number with the corrected national number
                     let correctedNumberString = potentialNationalNumber
