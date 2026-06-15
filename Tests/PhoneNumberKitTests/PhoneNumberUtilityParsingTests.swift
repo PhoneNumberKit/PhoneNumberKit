@@ -428,6 +428,33 @@ final class PhoneNumberUtilityParsingTests: XCTestCase {
         XCTAssertEqual(number.numberExtension, "22")
     }
 
+    func testParseCanIgnorePrefixValidationForPossibleNumber() throws {
+        XCTAssertThrowsError(try sut.parse("+1 200 555 0123", withRegion: "US")) { error in
+            XCTAssertEqual(error as? PhoneNumberError, .invalidNumber)
+        }
+
+        let number = try sut.parse("+1 200 555 0123 ext. 45", withRegion: "US", ignorePrefixValidation: true)
+        XCTAssertEqual(number.countryCode, 1)
+        XCTAssertEqual(number.nationalNumber, 2_005_550_123)
+        XCTAssertEqual(number.numberExtension, "45")
+        XCTAssertEqual(number.regionID, "US")
+        XCTAssertEqual(number.type, .unknown)
+    }
+
+    func testIsValidPhoneNumberCanIgnorePrefixValidation() {
+        XCTAssertFalse(sut.isValidPhoneNumber("+1 200 555 0123", withRegion: "US"))
+        XCTAssertTrue(sut.isValidPhoneNumber("+1 200 555 0123", withRegion: "US", ignorePrefixValidation: true))
+    }
+
+    func testParseMultipleCanIgnorePrefixValidation() {
+        let numbers = ["+1 200 555 0123", "+1 200 555 012", "not a number"]
+        let result = sut.parse(numbers, withRegion: "US", ignoreType: false, ignorePrefixValidation: true)
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.nationalNumber, 2_005_550_123)
+        XCTAssertEqual(result.first?.type, .unknown)
+    }
+
     func testNonAmbiguousPhoneNumber() {
         // This phone number was incorrectly identified as ambiguous.
         let address = "+1 345 916 1234"

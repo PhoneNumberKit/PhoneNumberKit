@@ -39,9 +39,10 @@ public final class PhoneNumberUtility {
     ///   - numberString: the raw number string.
     ///   - region: ISO 3166 compliant region code.
     ///   - ignoreType: Avoids number type checking for faster performance.
+    ///   - ignorePrefixValidation: Avoids metadata prefix validation while preserving possible-length validation.
     /// - Returns: PhoneNumber object.
-    public func parse(_ numberString: String, withRegion region: String = defaultRegionCode(), ignoreType: Bool = false) throws -> PhoneNumber {
-        try self.parseManager.parse(numberString, withRegion: region, ignoreType: ignoreType)
+    public func parse(_ numberString: String, withRegion region: String = defaultRegionCode(), ignoreType: Bool = false, ignorePrefixValidation: Bool = false) throws -> PhoneNumber {
+        try self.parseManager.parse(numberString, withRegion: region, ignoreType: ignoreType, ignorePrefixValidation: ignorePrefixValidation)
     }
 
     /// Parses an array of number strings. Optimised for performance. Invalid numbers are ignored in the resulting array
@@ -49,10 +50,11 @@ public final class PhoneNumberUtility {
     /// - parameter numberStrings:               array of raw number strings.
     /// - parameter region:                      ISO 3166 compliant region code.
     /// - parameter ignoreType:   Avoids number type checking for faster performance.
+    /// - parameter ignorePrefixValidation: Avoids metadata prefix validation while preserving possible-length validation.
     ///
     /// - returns: array of PhoneNumber objects.
-    public func parse(_ numberStrings: [String], withRegion region: String = defaultRegionCode(), ignoreType: Bool = false, shouldReturnFailedEmptyNumbers: Bool = false) -> [PhoneNumber] {
-        return self.parseManager.parseMultiple(numberStrings, withRegion: region, ignoreType: ignoreType, shouldReturnFailedEmptyNumbers: shouldReturnFailedEmptyNumbers)
+    public func parse(_ numberStrings: [String], withRegion region: String = defaultRegionCode(), ignoreType: Bool = false, shouldReturnFailedEmptyNumbers: Bool = false, ignorePrefixValidation: Bool = false) -> [PhoneNumber] {
+        return self.parseManager.parseMultiple(numberStrings, withRegion: region, ignoreType: ignoreType, shouldReturnFailedEmptyNumbers: shouldReturnFailedEmptyNumbers, ignorePrefixValidation: ignorePrefixValidation)
     }
 
     // MARK: Checking
@@ -63,9 +65,10 @@ public final class PhoneNumberUtility {
     ///   - numberString: the raw number string.
     ///   - region: ISO 3166 compliant region code.
     ///   - ignoreType: Avoids number type checking for faster performance.
+    ///   - ignorePrefixValidation: Avoids metadata prefix validation while preserving possible-length validation.
     /// - Returns: Bool
-    public func isValidPhoneNumber(_ numberString: String, withRegion region: String = defaultRegionCode(), ignoreType: Bool = false) -> Bool {
-        return (try? self.parse(numberString, withRegion: region, ignoreType: ignoreType)) != nil
+    public func isValidPhoneNumber(_ numberString: String, withRegion region: String = defaultRegionCode(), ignoreType: Bool = false, ignorePrefixValidation: Bool = false) -> Bool {
+        return (try? self.parse(numberString, withRegion: region, ignoreType: ignoreType, ignorePrefixValidation: ignorePrefixValidation)) != nil
     }
 
     // MARK: Formatting
