@@ -6,7 +6,6 @@
 //  Copyright © 2016 Roy Marmelstein. All rights reserved.
 //
 
-#if canImport(ObjectiveC)
 @testable import PhoneNumberKit
 import XCTest
 
@@ -699,4 +698,3 @@ final class PartialFormatterTests: XCTestCase {
         XCTAssertEqual(partialFormatter.formatPartial(testNumber), "7829 7")
     }
 }
-#endif
