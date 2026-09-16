@@ -697,4 +697,11 @@ final class PartialFormatterTests: XCTestCase {
         let testNumber = "078297"
         XCTAssertEqual(partialFormatter.formatPartial(testNumber), "7829 7")
     }
+
+    func testInputOverMaxLengthIsReturnedUnchanged() {
+        let partialFormatter = PartialFormatter(utility: utility, defaultRegion: "US")
+        let testNumber = String(repeating: "1", count: PhoneNumberConstants.maxInputStringLength + 1)
+        XCTAssertEqual(partialFormatter.formatPartial(testNumber), testNumber)
+        XCTAssertEqual(partialFormatter.nationalNumber(from: testNumber), testNumber)
+    }
 }

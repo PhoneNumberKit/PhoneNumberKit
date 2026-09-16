@@ -160,9 +160,8 @@ final class RegexManager {
 
     func stringByReplacingOccurrences(_ string: String, map: [String: String], keepUnmapped: Bool = false) -> String {
         var targetString = String()
-        for i in 0..<string.count {
-            let oneChar = string[string.index(string.startIndex, offsetBy: i)]
-            let keyString = String(oneChar).uppercased()
+        for char in string {
+            let keyString = String(char).uppercased()
             if let mappedValue = map[keyString] {
                 targetString.append(mappedValue)
             } else if keepUnmapped {

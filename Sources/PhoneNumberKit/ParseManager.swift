@@ -26,7 +26,8 @@ final class ParseManager {
     /// - parameter ignoreType:   Avoids number type checking for faster performance.
     func parse(_ numberString: String, withRegion region: String, ignoreType: Bool, ignorePrefixValidation: Bool = false) throws -> PhoneNumber {
         guard let metadataManager = metadataManager, let regexManager = regexManager else { throw PhoneNumberError.generalError }
-        
+        guard numberString.count <= PhoneNumberConstants.maxInputStringLength else { throw PhoneNumberError.tooLong }
+
         // STEP 1: Normalize region code
         // Ensure region is uppercase to match metadata keys (e.g., "us" -> "US")
         let region = region.uppercased()

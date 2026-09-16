@@ -91,7 +91,7 @@ public final class PartialFormatter {
     }
 
     public func nationalNumber(from rawNumber: String) -> String {
-        guard let parser else { return rawNumber }
+        guard let parser, rawNumber.count <= PhoneNumberConstants.maxInputStringLength else { return rawNumber }
 
         let iddFreeNumber = self.extractIDD(rawNumber)
         var nationalNumber = parser.normalizePhoneNumber(iddFreeNumber)
@@ -171,6 +171,7 @@ public final class PartialFormatter {
     // MARK: Formatting Tests
 
     func isValidRawNumber(_ rawNumber: String) -> Bool {
+        guard rawNumber.count <= PhoneNumberConstants.maxInputStringLength else { return false }
         do {
             // In addition to validPhoneNumberPattern,
             // accept any sequence of digits and whitespace, prefixed or not by a plus sign

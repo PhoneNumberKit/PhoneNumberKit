@@ -528,4 +528,29 @@ final class PhoneNumberUtilityParsingTests: XCTestCase {
             XCTAssertTrue(sut.isValidPhoneNumber(testCase.nsn, withRegion: testCase.region), row)
         }
     }
+
+    func testParseRejectsInputOverMaxLength() {
+        let maxLength = PhoneNumberConstants.maxInputStringLength
+        let overLimit = String(repeating: "1", count: maxLength + 1)
+        let atLimit = String(repeating: "1", count: maxLength)
+
+        XCTAssertThrowsError(try sut.parse(overLimit, withRegion: "US")) { error in
+            XCTAssertEqual(error as? PhoneNumberError, PhoneNumberError.tooLong)
+        }
+        XCTAssertFalse(sut.isValidPhoneNumber(overLimit, withRegion: "US"))
+        XCTAssertThrowsError(try sut.parse(atLimit, withRegion: "US")) { error in
+            XCTAssertNotEqual(error as? PhoneNumberError, PhoneNumberError.tooLong)
+        }
+    }
+
+    func testPerformanceNormalization() {
+        let length = 100_000
+        let input = String(repeating: "١", count: length)
+        let startTime = Date()
+        let output = sut.regexManager.stringByReplacingOccurrences(input, map: PhoneNumberPatterns.allNormalizationMappings, keepUnmapped: true)
+        let timeInterval = Date().timeIntervalSince(startTime)
+        print("time to normalize \(length) characters, \(timeInterval) seconds")
+        XCTAssertEqual(output, String(repeating: "1", count: length))
+        XCTAssertLessThan(timeInterval, 5)
+    }
 }
